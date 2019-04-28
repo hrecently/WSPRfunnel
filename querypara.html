@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<title>Specify Query Parameter</title>
+<style>
+body
+{ 
+	margin:0px;
+	padding:0px;
+	border:0px;
+	font-family:Arial; 
+	font-size:16px;
+	background-color:#FFF; 
+	white-space: nowrap;
+}
+</style>
+
+<script type="text/javascript">
+
+//
+// VARIABLEN
+//
+
+var _bandBitmap;
+
+
+//
+// FUNCTIONS
+//
+
+function setCookie(cname, cvalue, exdays) 
+{
+  var d = new Date();
+  d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+  var expires = "expires="+d.toUTCString();
+  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
+function getCookie(cname) 
+{
+  var name = cname + "=";
+  var decodedCookie = decodeURIComponent(document.cookie);
+  var ca = decodedCookie.split(';');
+  for(var i = 0; i <ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}
+
+function updCheckBoxes()
+{
+	var bands = [ "LW", "MW", "160m", "80m", "!80m", "60m", "!60m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "4m", "2m", "70cm", "23cm" ];
+
+	for( var i=0 ; i<bands.length ; i++ )
+	{
+		var el = document.getElementById(bands[i]);
+		
+		if(( _bandBitmap & (1<<i)) != 0 )
+			el.checked = true;
+		else
+			el.checked = false;
+	}
+}
+
+function init()
+{
+	_bandBitmap = getCookie("band_bitmap");
+	if( typeof _bandBitmap != "string"  ||  _bandBitmap.length == 0)
+	{
+		_bandBitmap = "0";
+		setCookie( "band_bitmap", _bandBitmap, 1000 );
+	}
+	
+	_bandBitmap = parseInt( _bandBitmap );
+	
+	updCheckBoxes();
+}
+
+function enterBand(el)
+{
+	if( el.checked == true )
+		_bandBitmap |= parseInt(el.name);
+	else
+		_bandBitmap &= ~parseInt(el.name);
+	
+	setCookie( "band_bitmap", _bandBitmap, 1000 );
+}
+
+function selectAll()
+{
+	_bandBitmap = "524287";
+	setCookie( "band_bitmap", _bandBitmap, 1000 );
+	updCheckBoxes();
+}
+
+function selectNone()
+{
+	_bandBitmap = "0";
+	setCookie( "band_bitmap", _bandBitmap, 1000 );
+	updCheckBoxes();
+}
+
+window.onload = init;
+
+</script>
+</head>
+<body>
+<div style="margin-top:50px;margin-left:50px">
+	<input id="LW"   name="1"      type="checkbox" onchange="enterBand(this)"> Longwave<br>
+	<input id="MW"   name="2"      type="checkbox" onchange="enterBand(this)"> Midwave<br>
+	<input id="160m" name="4"      type="checkbox" onchange="enterBand(this)"> 160m<br>  
+	<input id="80m"  name="8"      type="checkbox" onchange="enterBand(this)"> 80m<br>  
+	<input id="!80m" name="16"     type="checkbox" onchange="enterBand(this)"> 80m (old)<br>  
+	<input id="60m"  name="32"     type="checkbox" onchange="enterBand(this)"> 60m<br>  
+	<input id="!60m" name="64"     type="checkbox" onchange="enterBand(this)"> 60m (2)<br>  
+	<input id="40m"  name="128"    type="checkbox" onchange="enterBand(this)"> 40m<br>  
+	<input id="30m"  name="256"    type="checkbox" onchange="enterBand(this)"> 30m<br>  
+	<input id="20m"  name="512"    type="checkbox" onchange="enterBand(this)"> 20m<br>  
+	<input id="17m"  name="1024"   type="checkbox" onchange="enterBand(this)"> 17m<br>  
+	<input id="15m"  name="2048"   type="checkbox" onchange="enterBand(this)"> 15m<br>  
+	<input id="12m"  name="4096"   type="checkbox" onchange="enterBand(this)"> 12m<br>  
+	<input id="10m"  name="8192"   type="checkbox" onchange="enterBand(this)"> 10m<br>  
+	<input id="6m"   name="16384"  type="checkbox" onchange="enterBand(this)"> 6m<br>  
+	<input id="4m"   name="32768"  type="checkbox" onchange="enterBand(this)"> 4m<br>  
+	<input id="2m"   name="65536"  type="checkbox" onchange="enterBand(this)"> 2m<br>  
+	<input id="70cm" name="131072" type="checkbox" onchange="enterBand(this)"> 70cm<br>  
+	<input id="23cm" name="262144" type="checkbox" onchange="enterBand(this)"> 23cm<br>  
+	<br>
+	<span style="cursor:pointer" onClick="selectAll()">all</span>
+	<span style="cursor:pointer" onClick="selectNone()">none</span>
+	<span><a href="reports.html">update</a></span>
+</div>
+</body>

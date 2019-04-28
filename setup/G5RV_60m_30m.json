@@ -1,0 +1,12 @@
+{
+	"tablerow":1,
+	"srcname":"G5RV_60m_30m",
+	"feature": "direct",
+	"receiver": "f04e90",
+	"centerfreqs":
+	[
+		5.288700,
+		5.366200,
+		10.140200
+	]
+}
