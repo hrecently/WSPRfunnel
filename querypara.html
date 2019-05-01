@@ -112,29 +112,47 @@ window.onload = init;
 </script>
 </head>
 <body>
-<div style="margin-top:50px;margin-left:50px">
-	<input id="LW"   name="1"      type="checkbox" onchange="enterBand(this)"> Longwave<br>
-	<input id="MW"   name="2"      type="checkbox" onchange="enterBand(this)"> Midwave<br>
-	<input id="160m" name="4"      type="checkbox" onchange="enterBand(this)"> 160m<br>  
-	<input id="80m"  name="8"      type="checkbox" onchange="enterBand(this)"> 80m<br>  
-	<input id="!80m" name="16"     type="checkbox" onchange="enterBand(this)"> 80m (old)<br>  
-	<input id="60m"  name="32"     type="checkbox" onchange="enterBand(this)"> 60m<br>  
-	<input id="!60m" name="64"     type="checkbox" onchange="enterBand(this)"> 60m (2)<br>  
-	<input id="40m"  name="128"    type="checkbox" onchange="enterBand(this)"> 40m<br>  
-	<input id="30m"  name="256"    type="checkbox" onchange="enterBand(this)"> 30m<br>  
-	<input id="20m"  name="512"    type="checkbox" onchange="enterBand(this)"> 20m<br>  
-	<input id="17m"  name="1024"   type="checkbox" onchange="enterBand(this)"> 17m<br>  
-	<input id="15m"  name="2048"   type="checkbox" onchange="enterBand(this)"> 15m<br>  
-	<input id="12m"  name="4096"   type="checkbox" onchange="enterBand(this)"> 12m<br>  
-	<input id="10m"  name="8192"   type="checkbox" onchange="enterBand(this)"> 10m<br>  
-	<input id="6m"   name="16384"  type="checkbox" onchange="enterBand(this)"> 6m<br>  
-	<input id="4m"   name="32768"  type="checkbox" onchange="enterBand(this)"> 4m<br>  
-	<input id="2m"   name="65536"  type="checkbox" onchange="enterBand(this)"> 2m<br>  
-	<input id="70cm" name="131072" type="checkbox" onchange="enterBand(this)"> 70cm<br>  
-	<input id="23cm" name="262144" type="checkbox" onchange="enterBand(this)"> 23cm<br>  
-	<br>
-	<span style="cursor:pointer" onClick="selectAll()">all</span>
-	<span style="cursor:pointer" onClick="selectNone()">none</span>
-	<span><a href="reports.html">update</a></span>
-</div>
+<table>
+<tr style="vertical-align:top">
+<td>
+	<div style="margin-top:50px;margin-left:50px">
+		<input id="LW"   name="1"      type="checkbox" onchange="enterBand(this)"> Longwave<br>
+		<input id="MW"   name="2"      type="checkbox" onchange="enterBand(this)"> Midwave<br>
+		<input id="160m" name="4"      type="checkbox" onchange="enterBand(this)"> 160m<br>  
+		<input id="80m"  name="8"      type="checkbox" onchange="enterBand(this)"> 80m<br>  
+		<input id="!80m" name="16"     type="checkbox" onchange="enterBand(this)"> 80m (old)<br>  
+		<input id="60m"  name="32"     type="checkbox" onchange="enterBand(this)"> 60m<br>  
+		<input id="!60m" name="64"     type="checkbox" onchange="enterBand(this)"> 60m (2)<br>  
+		<input id="40m"  name="128"    type="checkbox" onchange="enterBand(this)"> 40m<br>  
+		<input id="30m"  name="256"    type="checkbox" onchange="enterBand(this)"> 30m<br>  
+		<input id="20m"  name="512"    type="checkbox" onchange="enterBand(this)"> 20m<br>  
+		<input id="17m"  name="1024"   type="checkbox" onchange="enterBand(this)"> 17m<br>  
+		<input id="15m"  name="2048"   type="checkbox" onchange="enterBand(this)"> 15m<br>  
+		<input id="12m"  name="4096"   type="checkbox" onchange="enterBand(this)"> 12m<br>  
+		<input id="10m"  name="8192"   type="checkbox" onchange="enterBand(this)"> 10m<br>  
+		<input id="6m"   name="16384"  type="checkbox" onchange="enterBand(this)"> 6m<br>  
+		<input id="4m"   name="32768"  type="checkbox" onchange="enterBand(this)"> 4m<br>  
+		<input id="2m"   name="65536"  type="checkbox" onchange="enterBand(this)"> 2m<br>  
+		<input id="70cm" name="131072" type="checkbox" onchange="enterBand(this)"> 70cm<br>  
+		<input id="23cm" name="262144" type="checkbox" onchange="enterBand(this)"> 23cm<br>  
+		<br>
+		<span style="cursor:pointer" onClick="selectAll()">all</span>
+		<span style="cursor:pointer" onClick="selectNone()">none</span>
+		<span><a href="reports.html">update</a></span>
+	</div>
+</td>
+<td>
+	<div style="margin-top:50px;margin-left:50px">
+		<input id="" name="" type="checkbox" onchange=""> today<br>
+		<input id="" name="" type="checkbox" onchange=""> last hour<br>
+		<input id="" name="" type="checkbox" onchange=""> last 12 hours<br>  
+		<input id="" name="" type="checkbox" onchange=""> last 24 hours<br>  
+		<input id="" name="" type="checkbox" onchange=""> last week<br>  
+		<input id="" name="" type="checkbox" onchange=""> last two weeks<br>  
+		<br>
+		<span><a href="reports.html">update</a></span>
+	</div>
+</td>
+</tr>
+</table>
 </body>

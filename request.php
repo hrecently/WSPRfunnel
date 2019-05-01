@@ -48,7 +48,7 @@ else
 	$_bandBitmap = 0xffffffff;
 
 date_default_timezone_set("Europe/Berlin");
-$jsonfile="./database/".date("ymd")."_wsprdat.json";
+$jsonfile="./database/".date("Y")."/".date("ymd")."_wsprdat.json";
 //$jsonfile="./database/190406_wsprdat.json";
 
 // Wenn json-Datei vorhanden, dann laden

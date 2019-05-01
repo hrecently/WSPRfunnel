@@ -7,26 +7,28 @@
 	
 	_wsprData
 	{
-		date: 					
+		date: 					Das fuer alle Daten gueltige Datum eines WSPR-Datensatzes in /database/year
+								Wenn Datensatz durch request.php generiert wird, koennen auch abweichende Datums 
+								im zugehoerigen Report auftreten (bei Anzeigen ueber Tagesgrenze)
 		
-		repcnt[n]				n = Anzahl definierter Setups
+		repcnt[n]				n = Anzahl definierter Setups 
 		
 		setup[n]
 			tablerow:			angestrebte Spalte in der HTML-Ausgabetabelle
-			srcname:				die verwendete Antenne (Source)
-			feature:				zwischengeschaltete "Features", z.B. Preamplifier, Filter, ...
+			srcname:			die verwendete Antenne (Source)
+			feature:			zwischengeschaltete "Features", z.B. Preamplifier, Filter, ...
 			receiver:			der verwendete Empfänger
 			centerfreqs[]		Array aller Empfangsfrequenzen
 			
 		slot[0...720]			Die 2 Minuten Empfangsslots des Tages von 9 bis 720
-			[]						Alle Reports des Slots
-				call:				Rufzeichen
-				grid:          QTH-Locator
+			[]					Alle Reports des Slots
+				call:			Rufzeichen
+				grid:			QTH-Locator
 				band:				
 				pwr:
 				srcArray[]
-					RXF:			gemessene Empfangsfrequenz
-					SNR:			gemessenes Signal-Rauschverhältnis in dB
+					RXF:		gemessene Empfangsfrequenz
+					SNR:		gemessenes Signal-Rauschverhältnis in dB
 	}
 */
 	
@@ -149,8 +151,11 @@ function saveJsonData()
 	if( $json == FALSE )
 		return;
 	
-	// Der Pfad zur zugehoerigen json-Datei
-	$jsonfile = "database/".$wsprData["date"]."_wsprdat.json";
+	// Jahreszahl aus WSPR-Daten bereitsstellen
+	$year = strval( 2000 + intval(substr($wsprData["date"],0,2)));
+
+	// Der Pfad der json-Datei
+	$jsonfile = "database/".$year."/".$wsprData["date"]."_wsprdat.json";
 	
 	// json-Daten abspeichern
 	$fp = fopen( $jsonfile, "w+" );
@@ -288,9 +293,16 @@ function procReportFile($srcdir,$file)
 
 	
 	// BEREITSTELLUNG / WECHSEL WSPR-DATEN
+
+	// Jahreszahl bereitsstellen
+	$year = strval( 2000 + intval(substr($date,0,2)));
+	
+	// Pruefen, ob Jahresverzeichnis existiert, ggf. anlegen
+	if( file_exists( "database/".$year ) != true )
+		mkdir( "database/".$year );
 	
 	// Der Pfad zur zugehoerigen json-Datei
-	$jsonfile = "database/".$date."_wsprdat.json";
+	$jsonfile = "database/".$year."/".$date."_wsprdat.json";
 
 	// Existiert bereits ein Array ?
 	if( $wsprData != FALSE )
@@ -357,7 +369,7 @@ function procReportFile($srcdir,$file)
 	}
 	
 	// Report-Datei loeschen
-	unlink($path);
+//	unlink($path);
 }
 
 // Alle WSPR-Report-Datein bearbeiten 
@@ -447,11 +459,7 @@ function loadSetup()
 // Main
 //
 
-// Pruefen, ob sources-Verzeichnis existiert 
-if( file_exists( "sources" ) != true )
-	mkdir( "sources" );
-
-// Pruefen, ob json-Verzeichnis existiert (ggf. anlegen)
+// Pruefen, ob Datenbank-Verzeichnis existiert (ggf. anlegen)
 if( file_exists( "database" ) != true )
 	mkdir( "database" );
 

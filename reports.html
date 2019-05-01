@@ -97,7 +97,7 @@ function rcvRequest()
 	
 	var htmlout = "<pre>";
 	var slotnum, slotidx, repnum, repidx, reparr, rep, srcnum, srcidx, src ;
-	var call, grid, band, pwr, RXF, pre, SNR;
+	var date, call, grid, band, pwr, RXF, pre, SNR;
 	
 	// Alle Slots bearbeiten (720 2m-Slots pro Tag, revers)
 	slotnum = _wsprData.slot.length ;
@@ -125,7 +125,15 @@ function rcvRequest()
 			
 			if( rep == null )
 				continue ;
-				
+			
+			/*	Falls von request.php eine Anzeige ueber mehrere Tage erstellt wurde,
+				dann enthaelt der Report auch ein Datum. Ansonsten wird das Datum-Tag der
+				gesamten Datei verwendet */
+			if( typeof rep["date"] != "undefined" )
+				date = rep["date"];
+			else
+				date = _wsprData["date"];
+			
 			call = rep.call;
 			while( call.length < 12 )
 				call = " " + call;
@@ -142,7 +150,7 @@ function rcvRequest()
 			while( pwr.length < 4 )
 				pwr = " " + pwr;
 				
-			htmlout += hh +":" + mm + " " + call + grid + band + " " + pwr + "   ";;
+			htmlout += " " + date + " " + hh +":" + mm + " " + call + grid + band + " " + pwr + "   ";;
 
 			srcnum = rep.srcArray.length ;
 			for( srcidx=0 ; srcidx < srcnum ; srcidx++ )
