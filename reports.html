@@ -6,7 +6,8 @@
 <style>
 body
 { 
-	margin:0px;
+	margin-top:0px;
+	margin-left:10px;
 	padding:0px;
 	border:0px;
 	font-family:Arial; 
@@ -66,6 +67,34 @@ function createCORSRequest()
 	return xhr;
 }
 
+// Datum fuer Ausgabe formattieren
+function getFmtDate(date)
+{
+	var yy = date.getUTCFullYear().toString().substr(2,2);
+	var mm = (date.getUTCMonth() + 1).toString();
+	if( mm.length < 2 )
+		mm = "0" + mm ;
+	var dd = date.getUTCDate().toString();
+	if( dd.length < 2 )
+		dd = "0" + dd ;
+	
+	return yy + "-" + mm + "-" + dd;
+}
+
+// Uhrzeit fuer Ausgabe formattieren
+function getFmtTime(date)
+{
+	var hh = date.getUTCHours().toString();
+	if( hh.length < 2 )
+		hh = "0" + hh ;
+	var mm = date.getUTCMinutes().toString();
+	if( mm.length < 2 )
+		mm = "0" + mm ;
+	
+	return hh + ":" + mm ;
+}
+
+// Antwort auf Request auswerten
 function rcvRequest()
 {
 	// Die Anzeige-Div
@@ -97,42 +126,31 @@ function rcvRequest()
 	
 	var htmlout = "<pre>";
 	var slotnum, slotidx, repnum, repidx, reparr, rep, srcnum, srcidx, src ;
-	var date, call, grid, band, pwr, RXF, pre, SNR;
+	var date, slot_date, slot_time, call, grid, band, pwr, RXF, pre, SNR;
 	
-	// Alle Slots bearbeiten (720 2m-Slots pro Tag, revers)
+	// Alle Slots bearbeiten (revers)
 	slotnum = _wsprData.slot.length ;
 	for ( slotidx=slotnum ; slotidx >= 0 ; slotidx-- )
 	{
-		reparr = _wsprData.slot[slotidx];
-		if( reparr == null )
+		// Dies ist nur moeglich, wenn eine Datenbank-Datei direkt verarbeitet wird
+		if( _wsprData.slot[slotidx] == null )
 			continue ;
 
-		// slotidx in hh:mm-String umrechnen
-		var min = slotidx * 2 ;
-		var hh = parseInt(min / 60 );
-		var mm = min - 60*hh ; 
-		hh = hh.toString();
-		if( hh.length < 2 )
-			hh = "0" + hh ;
-		mm = mm.toString();
-		if( mm.length < 2 )
-			mm = "0" + mm ;
-			
+		// Referenz auf Reports
+		if(( reparr = _wsprData.slot[slotidx].report ) == null )
+			continue ;
+
+		// Datum und Zeit des Slots
+		date = new Date(_wsprData.slot[slotidx].unixtime * 1000);
+		slot_date = getFmtDate(date);
+		slot_time = getFmtTime(date);
+		
 		var repnum = reparr.length ;
 		for( repidx=repnum-1 ; repidx >= 0 ; repidx-- )
 		{
 			rep = reparr[repidx];
-			
 			if( rep == null )
 				continue ;
-			
-			/*	Falls von request.php eine Anzeige ueber mehrere Tage erstellt wurde,
-				dann enthaelt der Report auch ein Datum. Ansonsten wird das Datum-Tag der
-				gesamten Datei verwendet */
-			if( typeof rep["date"] != "undefined" )
-				date = rep["date"];
-			else
-				date = _wsprData["date"];
 			
 			call = rep.call;
 			while( call.length < 12 )
@@ -150,7 +168,7 @@ function rcvRequest()
 			while( pwr.length < 4 )
 				pwr = " " + pwr;
 				
-			htmlout += " " + date + " " + hh +":" + mm + " " + call + grid + band + " " + pwr + "   ";;
+			htmlout += slot_date + " " + slot_time + " " + call + grid + band + " " + pwr + "   ";;
 
 			srcnum = rep.srcArray.length ;
 			for( srcidx=0 ; srcidx < srcnum ; srcidx++ )
@@ -232,13 +250,12 @@ function start()
 	var date = ( d.getFullYear() - 2000 ) * 10000 + (d.getMonth()+1) * 100 + d.getDate();
 	
 	// Die aktuelle Datendatei 
-//	var jsonfile = "./database/" + date.toString() + "_wsprdat.json" ;
-jsonfile = "./request.php" ;
+//	var jsonfile = "./database/" + d.getFullYear() + "/" + date.toString() + "_wsprdat.json" ;
+	var jsonfile = "./request.php" ;
 
 	// WSPR-Daten anfordern
 	_XhrElem.open('get', jsonfile, true);
 	_XhrElem.send();
-
 }
 
 // Main
@@ -247,9 +264,7 @@ window.onload = start ;
 </script>
 </head>
 <body>
-<p><span style="font-size:24px; margin-right:20px">DF5FH WSPR-Monitor</span><span style="font-family:courier; fontsize:10px" id="status">()</status></p>
+<p><span style="font-size:24px; margin-right:20px">DF5FH WSPR-Monitor</span><span style="font-family:courier; fontsize:10px" id="status">()</span></p>
 <span style="margin-right:50px"><a href="querypara.html">Specify Query Parameters</a></span><span><a href="filterpara.html">Specify Filter Parameters</a></span> 
-
 <div id="output"></div>
-
 </body>

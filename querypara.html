@@ -22,6 +22,7 @@ body
 // VARIABLEN
 //
 
+var _cookieObj;
 var _bandBitmap;
 
 
@@ -71,14 +72,33 @@ function updCheckBoxes()
 
 function init()
 {
-	_bandBitmap = getCookie("band_bitmap");
-	if( typeof _bandBitmap != "string"  ||  _bandBitmap.length == 0)
+	var obj;
+	var cookiestr = getCookie("wspr");
+	if( typeof cookiestr != "string" || cookiestr.length == 0 )
 	{
-		_bandBitmap = "0";
-		setCookie( "band_bitmap", _bandBitmap, 1000 );
+		// Default-Objekt erzeugen
+		_cookieObj = new Object();
+		_cookieObj.bandBitMap = "0";
+		_cookieObj.unixBegTime = "0";
+		_cookieObj.unixEndTime = "0xffffffff";
+		
+		setCookie( "wspr", JSON.stringify(_cookieObj), 1000 );
+	}
+	else
+	{
+		try
+		{
+			_cookieObj = JSON.parse(cookiestr);
+		}
+		catch (e)
+		{
+			alert(cookiestr);
+			return;
+		}
 	}
 	
-	_bandBitmap = parseInt( _bandBitmap );
+	// Band-Bitmap als Zahl zur Verfuegung stellen
+	_bandBitmap = parseInt( _cookieObj.bandBitMap );
 	
 	updCheckBoxes();
 }
@@ -89,22 +109,58 @@ function enterBand(el)
 		_bandBitmap |= parseInt(el.name);
 	else
 		_bandBitmap &= ~parseInt(el.name);
-	
-	setCookie( "band_bitmap", _bandBitmap, 1000 );
+
+	_cookieObj.bandBitMap = _bandBitmap.toString();
+	setCookie( "wspr", JSON.stringify(_cookieObj), 1000 );
 }
 
 function selectAll()
 {
 	_bandBitmap = "524287";
-	setCookie( "band_bitmap", _bandBitmap, 1000 );
+	
+	_cookieObj.bandBitMap = _bandBitmap.toString();
+	setCookie( "wspr", JSON.stringify(_cookieObj), 1000 );
+
 	updCheckBoxes();
 }
 
 function selectNone()
 {
 	_bandBitmap = "0";
-	setCookie( "band_bitmap", _bandBitmap, 1000 );
+	
+	_cookieObj.bandBitMap = _bandBitmap.toString();
+	setCookie( "wspr", JSON.stringify(_cookieObj), 1000 );
+
 	updCheckBoxes();
+}
+
+function enterTimeRange( mode )
+{
+	switch(mode)
+	{
+		case 0: // today
+		
+		var el = document.getElementById("today");
+		
+		if( el.checked == true )
+		{
+			var d = new Date();
+			var year = d.getUTCFullYear();
+			var month = d.getUTCMonth() + 1;
+			var day = d.getUTCDate();
+			
+			var d2 = new Date(year, month - 1, day, 2, 0, 0, 0);
+			var beg = d2.getTime();
+
+			var d3 = new Date(year, month - 1, day+1, 2, 0, 0, 0);
+			var end = d2.getTime();
+			
+			_cookieObj.unixBegTime = beg/1000;
+			_cookieObj.unixEndTime = end/1000;
+		
+			setCookie( "wspr", JSON.stringify(_cookieObj), 1000 );
+		}
+	}
 }
 
 window.onload = init;
@@ -143,7 +199,7 @@ window.onload = init;
 </td>
 <td>
 	<div style="margin-top:50px;margin-left:50px">
-		<input id="" name="" type="checkbox" onchange=""> today<br>
+		<input id="today" name="" type="checkbox" onchange="enterTimeRange(0)"> today<br>
 		<input id="" name="" type="checkbox" onchange=""> last hour<br>
 		<input id="" name="" type="checkbox" onchange=""> last 12 hours<br>  
 		<input id="" name="" type="checkbox" onchange=""> last 24 hours<br>  

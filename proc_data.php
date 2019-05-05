@@ -1,35 +1,38 @@
 <?PHP
 /*
-	proc_data.php
-	-------------
+   proc_data.php
+   -------------
 	
-	Aufbau Struktur _wsprData
+   Aufbau Struktur _wsprData
 	
-	_wsprData
-	{
-		date: 					Das fuer alle Daten gueltige Datum eines WSPR-Datensatzes in /database/year
-								Wenn Datensatz durch request.php generiert wird, koennen auch abweichende Datums 
-								im zugehoerigen Report auftreten (bei Anzeigen ueber Tagesgrenze)
+   _wsprData
+   {
+      file_date:         Datums-Prefix der json-Datei (z.B. 190502_wsprdat.json)
 		
-		repcnt[n]				n = Anzahl definierter Setups 
+      repcnt[n]          Report-Zaehler fuer die einzelnen Setupd (n=Anzahl definierter Setups)
 		
-		setup[n]
-			tablerow:			angestrebte Spalte in der HTML-Ausgabetabelle
-			srcname:			die verwendete Antenne (Source)
-			feature:			zwischengeschaltete "Features", z.B. Preamplifier, Filter, ...
-			receiver:			der verwendete Empfänger
-			centerfreqs[]		Array aller Empfangsfrequenzen
+      setup[n]
+         tablerow:       angestrebte Spalte in der HTML-Ausgabetabelle
+         srcname:        die verwendete Antenne (Source)
+         feature:        zwischengeschaltete "Features", z.B. Preamplifier, Filter, ...
+         receiver:       der verwendete Empfänger (Red Ritaya Mac)
+         centerfreqs[]   Array aller Empfangsfrequenzen
 			
-		slot[0...720]			Die 2 Minuten Empfangsslots des Tages von 9 bis 720
-			[]					Alle Reports des Slots
-				call:			Rufzeichen
-				grid:			QTH-Locator
-				band:				
-				pwr:
-				srcArray[]
-					RXF:		gemessene Empfangsfrequenz
-					SNR:		gemessenes Signal-Rauschverhältnis in dB
-	}
+      slot[0...720]      Die 2 Minuten Empfangsslots des Tages von 9 bis 720
+         unixtime:       Der Unix-Zeitstempel des Slots
+         report[]        Alle Reports des Slots
+            call:        Rufzeichen
+            grid:        QTH-Locator
+            band:        Das erkannte Band	
+            pwr:         Die Leistung des Senders
+            srcArray[]
+               RXF:      gemessene Empfangsfrequenz
+               SNR:      gemessenes Signal-Rauschverhältnis in dB
+   }
+	
+   Achtung: Werden die Daten mit request.php angefordert, dann ist:
+   - slot-Array lueckenlos (nur noch Element-Anzahl, kein Index-Zeit Zusammenhang mehr)
+   - file_date = undefined (Daten koennen auch ueber mehrere json-Dateien ermittelt werden)
 */
 	
 //
@@ -64,12 +67,27 @@ $_bands =
 $_setup;
 
 // Das aktuelle wspr-Array
-$wsprData;
+$_wsprData;
 
 	
 //
 // Funktionen
 //
+
+// Unix-Zeit aus gegebenen Formaten berechnen ( yymmdd, HHMM )
+function getUnixTime( $date_str, $time_str )
+{
+	$yy = substr($date_str,0,2);
+	$mm = substr($date_str,2,2);
+	$dd = substr($date_str,4,2);
+	$HH = intval(substr($time_str,0,2));
+	$MM = intval(substr($time_str,2,2));
+
+	$eng = $mm."/".$dd."/".$yy ;
+	$unix = strtotime($eng);
+
+	return $unix + $HH * 3600 + $MM * 60 ;
+}
 
 // Luecken in einem zahlenindizierten Array fuellen
 function expandNumberIndexedArray( &$array, $index )
@@ -114,7 +132,7 @@ function getBand( $freq )
 // wsprData-Datensatz aus json-Datei von Festplatte laden
 function loadJsonData($jsonfile)
 {
-	global $wsprData ;
+	global $_wsprData ;
 		
 	// Pruefen, ob zugehoerige json-Datei existiert
 	if( file_exists( $jsonfile ) == TRUE )
@@ -125,13 +143,13 @@ function loadJsonData($jsonfile)
 		if( $json != FALSE )
 		{
 			// json-Daten in Array dekodieren
-			$wsprData = json_decode($json, TRUE);
+			$_wsprData = json_decode($json, TRUE);
 		}
 	}
 	else
-		$wsprData = FALSE;
+		$_wsprData = FALSE;
 	
-	if( $wsprData == FALSE )
+	if( $_wsprData == FALSE )
 		return FALSE;
 	
 	return TRUE;
@@ -140,22 +158,22 @@ function loadJsonData($jsonfile)
 // aktuellen wsprData-Datensatz als json-Datei auf Festplatte speichern
 function saveJsonData()
 {
-	global $wsprData ;
+	global $_wsprData ;
 
 	// Pruefen, ob Daten zum Speichern vorhanden
-	if($wsprData == FALSE )
+	if($_wsprData == FALSE )
 		return ;
 
 	// json-Daten aus aktuellem Array erzeugen
-	$json = json_encode($wsprData,  JSON_PRETTY_PRINT);
+	$json = json_encode($_wsprData,  JSON_PRETTY_PRINT);
 	if( $json == FALSE )
 		return;
 	
 	// Jahreszahl aus WSPR-Daten bereitsstellen
-	$year = strval( 2000 + intval(substr($wsprData["date"],0,2)));
+	$year = strval( 2000 + intval(substr($_wsprData["file_date"],0,2)));
 
 	// Der Pfad der json-Datei
-	$jsonfile = "database/".$year."/".$wsprData["date"]."_wsprdat.json";
+	$jsonfile = "database/".$year."/".$_wsprData["file_date"]."_wsprdat.json";
 	
 	// json-Daten abspeichern
 	$fp = fopen( $jsonfile, "w+" );
@@ -169,7 +187,7 @@ function saveJsonData()
 // Report-Zeile auswerten
 function decodeWsprReport( $slot_idx, $receiver, $line )
 {
-	global $wsprData;
+	global $_wsprData;
 	global $_sourceDef;
 	global $_setup;
 
@@ -194,20 +212,23 @@ function decodeWsprReport( $slot_idx, $receiver, $line )
 	$call = str_replace( $tags, "*", $call );
 	
 	// Falls $slot_idx Sprung macht, Luecken im slot-Array mit "null" auffuellen
-	expandNumberIndexedArray($wsprData["slot"], $slot_idx);
+	expandNumberIndexedArray($_wsprData["slot"], $slot_idx);
 
 	// Pruefen, ob report-Array im slot bereits angelegt
-	if( $wsprData["slot"][$slot_idx] == null  )
+	if( $_wsprData["slot"][$slot_idx]["report"] == null  )
 	{
-		// report-array anlegen
-		$wsprData["slot"][$slot_idx] = array();
+		// Unix-Zeitmarke merken
+		$_wsprData["slot"][$slot_idx]["unixtime"] = getUnixTime( $date, $time);
+		
+		// Report-Array anlegen
+		$_wsprData["slot"][$slot_idx]["report"] = array();
 	}
 	
 	// Pruefen, ob Report-Element bereits vorhanden (Empfang eines Reports von mehreren Receivern)
-	$n = count( $wsprData["slot"][$slot_idx]);
+	$n = count( $_wsprData["slot"][$slot_idx]["report"]);
 	for( $rep_idx=0; $rep_idx<$n ; $rep_idx++ ) 
 	{
-		$report = $wsprData["slot"][$slot_idx][$rep_idx];
+		$report = $_wsprData["slot"][$slot_idx]["report"][$rep_idx];
 		
 		if( $report["call"] == $call )
 			if( $report["grid"] == $grid )
@@ -222,16 +243,17 @@ function decodeWsprReport( $slot_idx, $receiver, $line )
 	if( $rep_idx == $n )
 	{
 		// Neues Report-Element anlegen
-		$wsprData["slot"][$slot_idx][$rep_idx] = array();
+		$_wsprData["slot"][$slot_idx]["report"][$rep_idx] = array();
 		
 		// ... und ausfuellen
-		$wsprData["slot"][$slot_idx][$rep_idx]["call"] = $call ;
-		$wsprData["slot"][$slot_idx][$rep_idx]["grid"] = $grid ;
-		$wsprData["slot"][$slot_idx][$rep_idx]["band"] = getBand($freq) ;
-		$wsprData["slot"][$slot_idx][$rep_idx]["pwr"] = $pwr ;
-		$wsprData["slot"][$slot_idx][$rep_idx]["srcArray"] = array() ;
+		$_wsprData["slot"][$slot_idx]["report"][$rep_idx]["call"] = $call ;
+		$_wsprData["slot"][$slot_idx]["report"][$rep_idx]["grid"] = $grid ;
+		$_wsprData["slot"][$slot_idx]["report"][$rep_idx]["band"] = getBand($freq) ;
+		$_wsprData["slot"][$slot_idx]["report"][$rep_idx]["pwr"] = $pwr ;
+		$_wsprData["slot"][$slot_idx]["report"][$rep_idx]["srcArray"] = array() ;
 	}
 
+	
 	// EMPFANGSWERTE AUF SETUPS VERTEILEN
 	
 	// Frequenz in Zahl umwandeln
@@ -253,22 +275,22 @@ function decodeWsprReport( $slot_idx, $receiver, $line )
 				// EINTRAG ANLEGEN
 				
 				// Falls Index einen Sprung macht, Luecken in Array mit "null" auffuellen
-				expandNumberIndexedArray( $wsprData["slot"][$slot_idx][$rep_idx]["srcArray"], $setup_idx );
+				expandNumberIndexedArray( $_wsprData["slot"][$slot_idx]["report"][$rep_idx]["srcArray"], $setup_idx );
 
 				// Leeres Array bereitstellen (Fuer RXF und SNR)
 				// - Wenn hier spaeter nichts eingetragen wird, erfolgt die "NO RECEIVE"-Anzeige im Browser
-				if( !isset( $wsprData["slot"][$slot_idx][$rep_idx]["srcArray"][$setup_idx] ))
-					$wsprData["slot"][$slot_idx][$rep_idx]["srcArray"][$setup_idx] = array();
+				if( !isset( $_wsprData["slot"][$slot_idx]["report"][$rep_idx]["srcArray"][$setup_idx] ))
+					$_wsprData["slot"][$slot_idx]["report"][$rep_idx]["srcArray"][$setup_idx] = array();
 				
 				// Pruefen, ob Receiver uebereinstimmt
 				if( $receiver == $_setup[$setup_idx]["receiver"] )
 				{
 					// Report-Zaehler erhoehen (zeigt dem Browser, ob Platz fuer eine Spalte reserviert werden muss)
-					$wsprData["repcnt"][$setup_idx] ++;
+					$_wsprData["repcnt"][$setup_idx] ++;
 				
 					// Empfangswerte eintragen
-					$wsprData["slot"][$slot_idx][$rep_idx]["srcArray"][$setup_idx]["RXF"] = $freq;
-					$wsprData["slot"][$slot_idx][$rep_idx]["srcArray"][$setup_idx]["SNR"] = $snr;
+					$_wsprData["slot"][$slot_idx]["report"][$rep_idx]["srcArray"][$setup_idx]["RXF"] = $freq;
+					$_wsprData["slot"][$slot_idx]["report"][$rep_idx]["srcArray"][$setup_idx]["SNR"] = $snr;
 				}
 			}
 		}
@@ -278,7 +300,8 @@ function decodeWsprReport( $slot_idx, $receiver, $line )
 // Eine WSPR-Report-Datei bearbeiten und loeschen
 function procReportFile($srcdir,$file)
 {
-	global $wsprData ;
+// printf( "procReportFile: $srcdir$file\n");	
+	global $_wsprData ;
 	global $_setup;
 	
 	// Das Datum des eingehenden Datensatzes
@@ -305,46 +328,46 @@ function procReportFile($srcdir,$file)
 	$jsonfile = "database/".$year."/".$date."_wsprdat.json";
 
 	// Existiert bereits ein Array ?
-	if( $wsprData != FALSE )
+	if( $_wsprData != FALSE )
 	{
 		// Stimmt das Datum des vorhandenen wspr-Arrays mit dem des eingehenden Datensatzes nicht ueberein ?
-		if( $wsprData["date"] != $date )
+		if( $_wsprData["file_date"] != $date )
 		{
 			// Das aktuelle wspr-Array als json-Datei sichern
 			saveJsonData();
 			
 			// Das aktuelle wspr-Array ist ungueltig
-			$wsprData = FALSE ;
+			$_wsprData = FALSE ;
 		}
 	}
 	
 	// Ist ein gueltiges wspr-Array vorhanden ?
-	if( $wsprData == FALSE )
+	if( $_wsprData == FALSE )
 	{
 		// Versuch, json-Datei zu laden ...
 		loadJsonData( $jsonfile );
 	}
 	
 	// Ist ein gueltiges wspr-Array vorhanden ?
-	if( $wsprData == FALSE )
+	if( $_wsprData == FALSE )
 	{
 		// neues, leeres Array erzeugen
-		$wsprData = array();
+		$_wsprData = array();
 		
 		// das zugehoerige Datum merken
-		$wsprData["date"] = $date;
+		$_wsprData["file_date"] = $date;
 
 		// Das Setup uebernehmen (kopieren)
-		$wsprData["setup"] = $_setup;
+		$_wsprData["setup"] = $_setup;
 
 		// Report-Counter vorbereiten
-		$wsprData["repcnt"] = array();
+		$_wsprData["repcnt"] = array();
 		$n = count($_setup);
 		for( $idx=0 ; $idx<$n ; $idx++ )
-			$wsprData["repcnt"][$idx] = 0;
+			$_wsprData["repcnt"][$idx] = 0;
 		
 		// Das Array fuer die Slots erzeugen
-		$wsprData["slot"] = array();
+		$_wsprData["slot"] = array();
 	}
 
 	// REPORT-DATEI EINLESEN / LOESCHEN
@@ -369,7 +392,7 @@ function procReportFile($srcdir,$file)
 	}
 	
 	// Report-Datei loeschen
-//	unlink($path);
+	unlink($path);
 }
 
 // Alle WSPR-Report-Datein bearbeiten 
@@ -458,6 +481,9 @@ function loadSetup()
 //
 // Main
 //
+
+// Zeitzone einstellen
+date_default_timezone_set('UTC');
 
 // Pruefen, ob Datenbank-Verzeichnis existiert (ggf. anlegen)
 if( file_exists( "database" ) != true )
