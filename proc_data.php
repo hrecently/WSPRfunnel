@@ -7,15 +7,15 @@
 	
    _wsprData
    {
-      file_date:         Datums-Prefix der json-Datei (z.B. 190502_wsprdat.json)
+      dbfile:            vollstaendiger Pfad der Datei, in der die Daten gespeichert werden
 		
-      repcnt[n]          Report-Zaehler fuer die einzelnen Setupd (n=Anzahl definierter Setups)
+      repcnt[s]          Report-Zaehler fuer die einzelnen Setups (s=Anzahl definierter Setups)
 		
-      setup[n]
-         tablerow:       angestrebte Spalte in der HTML-Ausgabetabelle
+      setup[s]
          srcname:        die verwendete Antenne (Source)
          feature:        zwischengeschaltete "Features", z.B. Preamplifier, Filter, ...
          receiver:       der verwendete Empfänger (Red Ritaya Mac)
+         dbDir:          das Datenbank-Verzeichnis
          centerfreqs[]   Array aller Empfangsfrequenzen
 			
       slot[0...720]      Die 2 Minuten Empfangsslots des Tages von 9 bis 720
@@ -25,7 +25,7 @@
             grid:        QTH-Locator
             band:        Das erkannte Band	
             pwr:         Die Leistung des Senders
-            srcArray[]
+            srcArray[s]
                RXF:      gemessene Empfangsfrequenz
                SNR:      gemessenes Signal-Rauschverhältnis in dB
    }
@@ -133,26 +133,23 @@ function getBand( $freq )
 function loadJsonData($jsonfile)
 {
 	global $_wsprData ;
-		
+	$res = false;
+	
 	// Pruefen, ob zugehoerige json-Datei existiert
-	if( file_exists( $jsonfile ) == TRUE )
+	if( file_exists( $jsonfile ) == true )
 	{
 		// json-Datei einlesen
 		$json = file_get_contents($jsonfile);
-			
-		if( $json != FALSE )
+		if( $json != false )
 		{
 			// json-Daten in Array dekodieren
-			$_wsprData = json_decode($json, TRUE);
+			$_wsprData = json_decode($json, true);
+			if( $_wsprData != false )
+				$res = true;
 		}
 	}
-	else
-		$_wsprData = FALSE;
 	
-	if( $_wsprData == FALSE )
-		return FALSE;
-	
-	return TRUE;
+	return $res;
 }
 
 // aktuellen wsprData-Datensatz als json-Datei auf Festplatte speichern
@@ -165,23 +162,43 @@ function saveJsonData()
 		return ;
 
 	// json-Daten aus aktuellem Array erzeugen
-	$json = json_encode($_wsprData,  JSON_PRETTY_PRINT);
-	if( $json == FALSE )
+	$jsonstr = json_encode($_wsprData,  JSON_PRETTY_PRINT);
+	if( $jsonstr == FALSE )
 		return;
-	
-	// Jahreszahl aus WSPR-Daten bereitsstellen
-	$year = strval( 2000 + intval(substr($_wsprData["file_date"],0,2)));
 
-	// Der Pfad der json-Datei
-	$jsonfile = "database/".$year."/".$_wsprData["file_date"]."_wsprdat.json";
-	
 	// json-Daten abspeichern
-	$fp = fopen( $jsonfile, "w+" );
+	$fp = fopen( $_wsprData["dbfile"], "w+" );
 	if( $fp != FALSE )
 	{
-		fprintf( $fp, "$json" );
+		fprintf( $fp, "$jsonstr" );
 		fclose($fp);
 	}
+}
+
+// User-Configuration einlesen ( --> $_dbdir, $_setup )
+function loadConfig( $user )
+{
+	global $_setup;
+	global $_dbdir;
+
+	$_setup = $_dbdir = false ;
+	
+	// json-Datei einlesen
+	$json = file_get_contents("./config/".$user.".json");
+	if( $json != false )
+	{
+		$data = json_decode($json, true);
+		if( $data != false )
+		{
+			// globale Variablen setzen
+			$_setup = $data["setup"];
+			$_dbdir = $data["dbdir"];
+			return true;
+		}
+	}
+	
+	printf("loadConfig($user) failed\n");
+	return false;
 }
 
 // Report-Zeile auswerten
@@ -303,10 +320,12 @@ function procReportFile($srcdir,$file)
 // printf( "procReportFile: $srcdir$file\n");	
 	global $_wsprData ;
 	global $_setup;
+	global $_dbdir;
 	
 	// Das Datum des eingehenden Datensatzes
 	$date = strtok( $file, "_" );
 	$time = strtok( "_" );
+	$user = "DF5FH";                   // todo: wird spaeter im Dateinamen untergebracht sein
 	$receiver = strtok( "." );
 
 	// Slot-Index (0...719) aus $time berechnen
@@ -314,38 +333,56 @@ function procReportFile($srcdir,$file)
 	$min = intval(substr($time,2,2));
 	$slot_idx = (60 * $std + $min) >> 1 ;
 
+	// User-Configuration einlesen ( --> $_dbdir, $_setup )
+	if( loadConfig($user) == false )
+		return;
+
+	// Pruefen, ob Datenbank-Verzeichnis existiert (ggf. anlegen)
+	$dbdir = "database" ;
+	if( file_exists( $dbdir ) != true )
+		mkdir( $dbdir );
+
+	// Das User-Verzeichnis ...
+	$dbdir .= "/".$user;
+	
+	// ... pruefen, ggf. anlegen
+	if( file_exists( $dbdir ) != true )
+		mkdir( $dbdir );
+
+	// Das zugehoerige Datenbankverzeichnis ...
+	$dbdir .= "/".$_dbdir[$receiver];
+	
+	// ... pruefen, ggf. anlegen
+	if( file_exists( $dbdir ) != true )
+		mkdir( $dbdir );
+
+	// Der vollstaendige Pfad der zugehoerigen json-Datei
+	$dbfile = $dbdir."/".$date."_wsprdat.json";
+
 	
 	// BEREITSTELLUNG / WECHSEL WSPR-DATEN
-
-	// Jahreszahl bereitsstellen
-	$year = strval( 2000 + intval(substr($date,0,2)));
-	
-	// Pruefen, ob Jahresverzeichnis existiert, ggf. anlegen
-	if( file_exists( "database/".$year ) != true )
-		mkdir( "database/".$year );
-	
-	// Der Pfad zur zugehoerigen json-Datei
-	$jsonfile = "database/".$year."/".$date."_wsprdat.json";
 
 	// Existiert bereits ein Array ?
 	if( $_wsprData != FALSE )
 	{
-		// Stimmt das Datum des vorhandenen wspr-Arrays mit dem des eingehenden Datensatzes nicht ueberein ?
-		if( $_wsprData["file_date"] != $date )
+		// Passt die Zieldatei zur eingehenden Datei ?
+		if( $_wsprData["dbfile"] != $dbfile )
 		{
-			// Das aktuelle wspr-Array als json-Datei sichern
+			// nein:
+			
+			// Die aktuellen Daten sichern
 			saveJsonData();
 			
 			// Das aktuelle wspr-Array ist ungueltig
 			$_wsprData = FALSE ;
 		}
 	}
-	
+
 	// Ist ein gueltiges wspr-Array vorhanden ?
 	if( $_wsprData == FALSE )
 	{
 		// Versuch, json-Datei zu laden ...
-		loadJsonData( $jsonfile );
+		loadJsonData( $dbfile );
 	}
 	
 	// Ist ein gueltiges wspr-Array vorhanden ?
@@ -357,9 +394,9 @@ function procReportFile($srcdir,$file)
 		// das zugehoerige Datum merken
 		$_wsprData["file_date"] = $date;
 
-		// Das Setup uebernehmen (kopieren)
-		$_wsprData["setup"] = $_setup;
-
+		// Die Datei, in der _wsprData gespeichert wird
+		$_wsprData["dbfile"] = $dbfile;
+		
 		// Report-Counter vorbereiten
 		$_wsprData["repcnt"] = array();
 		$n = count($_setup);
@@ -374,6 +411,7 @@ function procReportFile($srcdir,$file)
 	
 	// Report-Datei zeilenweise bearbeiten
 	$path = $srcdir.$file ;
+
 	$fp = fopen( $path, "r" );
 	if( $fp != FALSE )
 	{
@@ -427,54 +465,9 @@ function procDataDir()
 		}
 		
 		closedir($dh);
-	}
-}
-
-// Setups in Array einlesen (_setup)
-function loadSetup()
-{
-	global $_setup ;
-	
-	$srcdir = "./setup/" ;
-	
-	$_setup = array();
-	
-	if($dh = opendir($srcdir)) 
-	{
-		$_setup = array();
-
-		$i = 0 ;
-		while (($file = readdir($dh)) !== false) 
-		{
-			if( $file == "." )
-				continue ;
-			if( $file == ".." )
-				continue ;
-
-			if( filetype($srcdir.$file) == "file" )
-			{
-				$pi = pathinfo($srcdir.$file);
-
-				if( strtolower( $pi['extension'] )== "json") 
-				{
-					// json-Datei einlesen
-					$json = file_get_contents($srcdir.$file);
-			
-					if( $json != FALSE )
-					{
-						$js = json_decode($json, TRUE);
-						
-						$tablerow = $js["tablerow"];
-						
-						expandNumberIndexedArray( $_setup, $tablerow );
-						
-						$_setup[$tablerow] = $js ;
-					}
-				}
-			}
-		}
 		
-		closedir($dh);
+		// aktuelles wsprData-Array speichern (wenn vorhanden)
+		saveJsonData();
 	}
 }
 
@@ -485,18 +478,8 @@ function loadSetup()
 // Zeitzone einstellen
 date_default_timezone_set('UTC');
 
-// Pruefen, ob Datenbank-Verzeichnis existiert (ggf. anlegen)
-if( file_exists( "database" ) != true )
-	mkdir( "database" );
-
-// Setup einlesen
-loadSetup();
-
 // Alle neuen Datensaetze in wsprData-Array aufnehmen
 procDataDir();
-
-// erweitertes wsprData-Array in json-Datei speichern
-saveJsonData();
 
 printf( "ok\r\n" );
 ?>

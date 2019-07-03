@@ -16,6 +16,47 @@ body
 }
 </style>
 
+<?PHP
+// Setup-Array generieren (aus Verzeichnissen in /database)
+function srcGenerateSetupArray()
+{
+	printf(	"\t// Setup-Array (php-generated)\n".
+			"\tvar setupname = [");
+		   
+	// Verzeichnis, in das die Report-Dateien hochgeladen werden
+	$srcdir = "./database/DF5FH/" ;
+	if($dh = opendir($srcdir)) 
+	{
+		$flag = false;
+		
+		// Alle Setup-Verzeichnisse bearbeiten
+		while (($file = readdir($dh)) !== false) 
+		{
+			if( $file == "." )
+				continue ;
+			if( $file == ".." )
+				continue ;
+
+			if( filetype($srcdir.$file) == "dir" )
+			{
+				if( $flag == false )
+				{
+					$flag = true ;
+					printf( "\"$file\"" );
+				}
+				else
+				{
+					printf( ",\"$file\"" );
+				}
+			}
+		}
+		
+		closedir($dh);
+	}
+	printf("];\n");
+}
+?>	
+
 <script type="text/javascript">
 
 //
@@ -24,7 +65,6 @@ body
 
 var _cookieObj;
 var _bandBitmap;
-
 
 //
 // FUNCTIONS
@@ -78,7 +118,10 @@ function init()
 	{
 		// Default-Objekt erzeugen
 		_cookieObj = new Object();
+		_cookieObj.userName = "DF5FH";
+		_cookieObj.setupName = "?";
 		_cookieObj.bandBitMap = "0";
+		_cookieObj.count = "50";
 		_cookieObj.unixBegTime = "0";
 		_cookieObj.unixEndTime = "0xffffffff";
 		
@@ -100,8 +143,80 @@ function init()
 	// Band-Bitmap als Zahl zur Verfuegung stellen
 	_bandBitmap = parseInt( _cookieObj.bandBitMap );
 	
+	
+	// BANDS
+
 	updCheckBoxes();
-}
+		
+	
+	// SETUP
+	
+	var div = document.getElementById("Setup");
+	
+	// Ueberschrift
+	var html = document.createElement("div");
+	html.innerHTML ="Setup";
+	div.appendChild(html);
+	
+	var sel = document.createElement("select");
+	div.appendChild(sel);
+
+<?PHP
+	// Das Setup-Array wird durch Auslesen der Verzeichnisse mit PHP erzeugt
+	srcGenerateSetupArray();
+?>	
+
+	if( _cookieObj.setupName == "?" )
+	{
+		_cookieObj.setupName = setupname[0];
+		setCookie( "wspr", JSON.stringify(_cookieObj), 1000 );
+	}
+	
+	// Das Setup-Array
+	for (var i = 0; i < setupname.length; i++ ) 
+	{
+		var option = document.createElement("option");
+		option.value = setupname[i];
+		option.text = setupname[i];
+		if( option.value == _cookieObj.setupName )
+			option.selected = "selected";
+		sel.appendChild(option);
+	}
+	
+	sel.onchange = function()
+	{
+		// Aktuell eingestellten Wert holen
+		var elem = (typeof this.selectedIndex === "undefined" ? window.event.srcElement : this);
+		var value = elem.value || elem.options[elem.selectedIndex].value;
+		
+		// ... und uebernehmen
+		_cookieObj.setupName = value;
+		setCookie( "wspr", JSON.stringify(_cookieObj), 1000 );
+	}
+
+	
+	// COUNT
+
+	div = document.getElementById("Count");
+	
+	input = document.createElement("input");
+	div.appendChild(input);
+	
+	input.value = _cookieObj.count;
+	input.style.width = "100px";
+	
+	input.onchange = function()
+	{
+		// Aktuell eingestellten Wert holen
+		var elem = (typeof this.selectedIndex === "undefined" ? window.event.srcElement : this);
+		var value = elem.value || elem.options[elem.selectedIndex].value;
+
+		// ... und uebernehmen
+		_cookieObj.count = value;
+		setCookie( "wspr", JSON.stringify(_cookieObj), 1000 );
+	}
+}	
+
 
 function enterBand(el)
 {
@@ -171,7 +286,8 @@ window.onload = init;
 <table>
 <tr style="vertical-align:top">
 <td>
-	<div style="margin-top:50px;margin-left:50px">
+	<div style="margin-top:50px;margin-left:50px">Bands</div>
+	<div style="margin-top:0px;margin-left:50px">
 		<input id="LW"   name="1"      type="checkbox" onchange="enterBand(this)"> Longwave<br>
 		<input id="MW"   name="2"      type="checkbox" onchange="enterBand(this)"> Midwave<br>
 		<input id="160m" name="4"      type="checkbox" onchange="enterBand(this)"> 160m<br>  
@@ -198,16 +314,21 @@ window.onload = init;
 	</div>
 </td>
 <td>
-	<div style="margin-top:50px;margin-left:50px">
-		<input id="today" name="" type="checkbox" onchange="enterTimeRange(0)"> today<br>
-		<input id="" name="" type="checkbox" onchange=""> last hour<br>
-		<input id="" name="" type="checkbox" onchange=""> last 12 hours<br>  
-		<input id="" name="" type="checkbox" onchange=""> last 24 hours<br>  
-		<input id="" name="" type="checkbox" onchange=""> last week<br>  
-		<input id="" name="" type="checkbox" onchange=""> last two weeks<br>  
+	<div style="margin-top:50px;margin-left:50px" id="Setup"></div>
+	
+	<div style="margin-top:30px;margin-left:50px">Time range</div>
+	<div style="margin-top:0px;margin-left:50px">
+		<input id="today" name="range" type="radio" onchange="enterTimeRange(0)"> today<br>
+		<input id="" name="range" type="radio" onchange=""> from begin<br>
+	</div>
+	
+	<div style="margin-top:30px;margin-left:50px">Count</div>
+	<div style="margin-top:0px;margin-left:50px">
+		<div id="Count"></div>
 		<br>
 		<span><a href="reports.html">update</a></span>
-	</div>
+	<div>
+	
 </td>
 </tr>
 </table>

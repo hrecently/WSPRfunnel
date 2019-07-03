@@ -36,6 +36,13 @@ if (isset($_FILES['f04e90']))
    $uploader = "f04e90" ;
 }
 
+// Wurde die Datei von dem Redpitaya mit der Mac-Adresse f07b5a... hochgeladen
+if (isset($_FILES['f07b5a'])) 
+{
+   $source = $_FILES['f07b5a']['tmp_name'];
+   $uploader = "f07b5a" ;
+}
+
 // Wurde eine Datei von einem bekannten Geraet hochgeladen
 if( $source != "" )
 {

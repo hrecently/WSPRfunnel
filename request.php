@@ -187,25 +187,6 @@ function processFile( $file, $begTime, $endTime )
 }
 */
 
-//
-// Main
-//
-
-// Cookie-Objekt einlesen
-if( isset($_COOKIE["wspr"]))
-{
-	$str = $_COOKIE["wspr"]; 
-	$_cookieObj = json_decode($str, TRUE);
-}
-else
-{
-	// Default-Objekt
-	$_cookieObj = array();
-	$_cookieObj["bandBitMap"] = 0xffffffff;
-	$_cookieObj["unixBegTime"] = 0;
-	$_cookieObj["unixEndTime"] = 0xffffffff;
-}
-
 /*
 // DIE ERSTE WSPR-DATEI SUCHEN
 
@@ -254,11 +235,37 @@ if( $res != false )
 }
 */
 
+
+//
+// Main
+//
+
+// Cookie-Objekt einlesen
+if( isset($_COOKIE["wspr"]))
+{
+	$str = $_COOKIE["wspr"]; 
+	$_cookieObj = json_decode($str, TRUE);
+}
+else
+{
+	// Default-Objekt
+	$_cookieObj = array();
+	$_cookieObj["userName"] = "DF5FH";
+	$_cookieObj["setupName"] = "1901_2RedPitaya.001";
+	$_cookieObj["bandBitMap"] = "0xffffffff";
+	$_cookieObj["setupName"] = "?";
+	$_cookieObj["count"] = "50";
+	$_cookieObj["unixBegTime"] = 0;
+	$_cookieObj["unixEndTime"] = 0xffffffff;
+}
+
 //printf("<pre>");
+//printf("Debug-Output:\n");
+//print_r($_cookieObj);
 
 date_default_timezone_set('UTC');
-$jsonfile="./database/".date("Y")."/".date("ymd")."_wsprdat.json";
-//$jsonfile="./database/2019/190406_wsprdat.json";
+$jsonfile="./database/".$_cookieObj["userName"]."/".$_cookieObj["setupName"]."/".date("ymd")."_wsprdat.json";
+//printf("$jsonfile<br>");
 
 // Wenn json-Datei vorhanden, dann laden
 if( file_exists ($jsonfile) == TRUE )
@@ -287,10 +294,15 @@ if( $jsonstr != "" )
 	$new_slot_idx = 0 ;
 	$new_slot_flag = false ;
 	
-	// Alle kopierten Slots bearbeiten
+	// Alle Slots bearbeiten
+	$limit = 0;
 	$slot_num = count($_wsprData["slot"]);
 	for( $slot_idx=0; $slot_idx < $slot_num; $slot_idx++ )
 	{
+		// Ausgabe-Begrenzung
+		if( $limit >= $_cookieObj["count"] )
+			break; 
+		
 		// FILTER
 
 		// Index der neuen Reports
@@ -307,7 +319,6 @@ if( $jsonstr != "" )
 			$band_bit = $_bandBits[$band];
 			if(( $_cookieObj["bandBitMap"] & $band_bit ) == 0 )
 				continue;
-
 		
 			// FILTERERGEBNIS UEBERNEHMEN
 
@@ -335,6 +346,11 @@ if( $jsonstr != "" )
 
 			// Flag fuer neuen Slot-Index
 			$new_slot_flag = true;
+			
+			// Ausgabe-Begrenzung
+			$limit ++ ;
+			if( $limit >= $_cookieObj["count"] )
+				break; 
 		}
 
 		// Pruefen, ob neuer Slot-Index 
