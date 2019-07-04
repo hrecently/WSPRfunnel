@@ -1,0 +1,68 @@
+{
+    "dbdir"
+	[
+		"f01f60":"Max_Reports",
+		"f04e90":"Max_Reports",
+		"f07b5a":"Max_Reports"
+	],
+    "setup": 
+	[
+        {
+            "srcname": "G5RV_80m_40m",
+            "feature": "Preamp 15dB",
+            "receiver": "f07b5a",
+            "centerfreqs": [
+                0.1375,
+                0.4757,
+                1.8381,
+                3.5701,
+                3.5941,
+                5.2887,
+                5.3662,
+                7.0401,
+                10.1402,
+                14.0971,
+                18.1061,
+                21.0961,
+                28.1261
+            ]
+        },
+        {
+            "srcname": "G5RV_60m_30m",
+            "feature": "direct",
+            "receiver": "f01f60",
+            "centerfreqs": [
+                3.5701,
+                3.5941,
+                5.2887,
+                5.3662,
+                7.0401,
+                10.1402,
+                14.0971
+            ]
+        },
+        {
+            "srcname": "R6000",
+            "feature": "Preamp 15dB",
+            "receiver": "f04e90",
+            "centerfreqs": [
+                1.8381,
+                3.5701,
+                14.0971,
+                18.1061,
+                21.0961,
+                24.9261,
+                28.1261,
+                50.2945
+            ]
+        },
+        {
+            "srcname": "Diamond_X30",
+            "feature": "2m\/10m Conv.",
+            "receiver": "f01f60",
+            "centerfreqs": [
+                144.4905007
+            ]
+        }
+    ]
+}
