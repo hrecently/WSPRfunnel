@@ -1,4 +1,5 @@
 # WSPRfunnel
+[Online WSPRfunnel von DF5FH](http://eowyn.borges-home.de/wspr/reports.html "2 STEM14 and 1 STM16")
 ## Aufgaben nach Prioritaet
 - Annahme der WSPR-Datensaetze von mehreren Red-Pitayas (generiert von Pavel Demins Software)
 - Zusammenfuehrung und Upload der Datensaetze auf wsprnet.org
