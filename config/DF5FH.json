@@ -1,10 +1,10 @@
 {
     "dbdir"
-	[
+	{
 		"f01f60":"Max_Reports",
 		"f04e90":"Max_Reports",
 		"f07b5a":"Max_Reports"
-	],
+	},
     "setup": 
 	[
         {
