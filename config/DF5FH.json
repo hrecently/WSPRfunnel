@@ -1,12 +1,10 @@
 {
-    "dbdir":
-	{
-		"f01f60":"Max_Reports",
-		"f04e90":"Max_Reports",
-		"f07b5a":"Max_Reports"
-	},
-    "setup": 
-	[
+    "dbdir": {
+        "f01f60": "Max_Reports.190704.1630",
+        "f04e90": "Max_Reports.190704.1630",
+        "f07b5a": "Max_Reports.190704.1630"
+    },
+    "setup": [
         {
             "srcname": "G5RV_80m_40m",
             "feature": "Preamp 15dB",

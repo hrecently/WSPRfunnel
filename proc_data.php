@@ -11,11 +11,10 @@
 		
       repcnt[s]          Report-Zaehler fuer die einzelnen Setups (s=Anzahl definierter Setups)
 		
-      setup[s]
+      setup[s]           (keine Verwendung in diesem Modul, wird nur fuer Anzeige im Browser benoetigt)
          srcname:        die verwendete Antenne (Source)
          feature:        zwischengeschaltete "Features", z.B. Preamplifier, Filter, ...
          receiver:       der verwendete Empfänger (Red Ritaya Mac)
-         dbDir:          das Datenbank-Verzeichnis
          centerfreqs[]   Array aller Empfangsfrequenzen
 			
       slot[0...720]      Die 2 Minuten Empfangsslots des Tages von 9 bis 720
@@ -178,8 +177,8 @@ function saveJsonData()
 // User-Configuration einlesen ( --> $_dbdir, $_setup )
 function loadConfig( $user )
 {
-	global $_setup;
 	global $_dbdir;
+	global $_setup;
 
 	$_setup = $_dbdir = false ;
 	
@@ -191,13 +190,35 @@ function loadConfig( $user )
 		if( $data != false )
 		{
 			// globale Variablen setzen
-			$_setup = $data["setup"];
 			$_dbdir = $data["dbdir"];
+			$_setup = $data["setup"];
 			return true;
 		}
 	}
 	
 	printf("loadConfig($user) failed\n");
+	return false;
+}
+
+// User-Configuration mit neuem dbdir-Time-Suffix speichern
+function saveConfig( $user )
+{
+	global $_dbdir;
+	global $_setup;
+
+	$conf = array();
+	
+	$conf["dbdir"] = $_dbdir;
+	$conf["setup"] = $_setup;
+	
+	$jsonstr = json_encode($conf,  JSON_PRETTY_PRINT);
+	if( $jsonstr != false )
+	{
+		if( file_put_contents("./config/".$user.".json", $jsonstr) != false )
+			return true;
+	}
+	
+	printf("saveConfig($user) failed\n");
 	return false;
 }
 
@@ -337,24 +358,43 @@ function procReportFile($srcdir,$file)
 	if( loadConfig($user) == false )
 		return;
 
-	// Pruefen, ob Datenbank-Verzeichnis existiert (ggf. anlegen)
+	// Datenbank-Verzeichnis ...
 	$dbdir = "database" ;
-	if( file_exists( $dbdir ) != true )
+	if( file_exists( $dbdir ) != true ) // ... pruefen, ggf. anlegen
 		mkdir( $dbdir );
 
 	// Das User-Verzeichnis ...
 	$dbdir .= "/".$user;
-	
-	// ... pruefen, ggf. anlegen
-	if( file_exists( $dbdir ) != true )
+	if( file_exists( $dbdir ) != true ) // ... pruefen, ggf. anlegen
 		mkdir( $dbdir );
 
-	// Das zugehoerige Datenbankverzeichnis ...
+	/* Im Falle einer Veraenderung der Config soll automatisch ein neues
+	   Verzeichnis mit neuem Time-Suffix angelegt werden */
+	   
+	// Das Datenbankverzeichnis ...
 	$dbdir .= "/".$_dbdir[$receiver];
-	
-	// ... pruefen, ggf. anlegen
-	if( file_exists( $dbdir ) != true )
-		mkdir( $dbdir );
+	if( file_exists( $dbdir ) != true ) // ... pruefen, ggf. anlegen
+	{
+		// Verzeichnis erstmalig anlegen
+		
+		// neuen Time-Suffix im kompletten Pfad einsetzen
+		$dbdir = strtok( $dbdir, "." );
+		$dbdir .= ".".$date.".".$time;
+		
+		// neuen Time-Suffix in Config einsetzen
+		$_dbdir[$receiver] = strtok( $_dbdir[$receiver], ".");
+		$_dbdir[$receiver] .= ".".$date.".".$time;
+
+		// korrigierte Config-Datei speichern
+		saveConfig($user);
+		
+		// Verzeichnis erstellen
+		if( file_exists( $dbdir ) != true )
+			mkdir($dbdir);
+	}
+	else
+	{
+	}
 
 	// Der vollstaendige Pfad der zugehoerigen json-Datei
 	$dbfile = $dbdir."/".$date."_wsprdat.json";
@@ -362,7 +402,7 @@ function procReportFile($srcdir,$file)
 	
 	// BEREITSTELLUNG / WECHSEL WSPR-DATEN
 
-	// Existiert bereits ein Array ?
+	// Existiert bereits ein Array ? 
 	if( $_wsprData != FALSE )
 	{
 		// Passt die Zieldatei zur eingehenden Datei ?
@@ -378,7 +418,7 @@ function procReportFile($srcdir,$file)
 		}
 	}
 
-	// Ist ein gueltiges wspr-Array vorhanden ?
+	// Ist noch ein gueltiges wspr-Array vorhanden ? (bei Programmstart)
 	if( $_wsprData == FALSE )
 	{
 		// Versuch, json-Datei zu laden ...
@@ -388,7 +428,9 @@ function procReportFile($srcdir,$file)
 	// Ist ein gueltiges wspr-Array vorhanden ?
 	if( $_wsprData == FALSE )
 	{
-		// neues, leeres Array erzeugen
+		// WSPR Daten erzeugen
+		
+		// neues, leeres Array 
 		$_wsprData = array();
 		
 		// das zugehoerige Datum merken
@@ -396,6 +438,9 @@ function procReportFile($srcdir,$file)
 
 		// Die Datei, in der _wsprData gespeichert wird
 		$_wsprData["dbfile"] = $dbfile;
+		
+		// Setup-Kopie (nur fuer Verwendung im Browser)
+		$_wsprData["setup"] = $_setup;
 		
 		// Report-Counter vorbereiten
 		$_wsprData["repcnt"] = array();

@@ -287,6 +287,9 @@ if( $jsonstr != "" )
 	for( $i=0 ; $i<$setup_num ; $i++ )
 		$_browserOut["repcnt"][$i] = 0;
 
+	// Setup-Array kopieren
+	$_browserOut["setup"] = $_wsprData["setup"];
+	
 	// Slot-Array erzeugen
 	$_browserOut["slot"] = array();
 
